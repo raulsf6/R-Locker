@@ -9,6 +9,7 @@
 #define MAXTHREADS 24
 
 std::vector<std::wstring> trap_paths;
+
 std::vector<std::wstring> extensions{
     L".pdf",
     L".jpg",
@@ -22,6 +23,7 @@ std::vector<std::wstring> extensions{
     L".avi",
     L".raw",
 };
+
 std::wstring trap_target(L"\\\\.\\pipe\\trap");
 
 
@@ -100,12 +102,15 @@ DWORD WINAPI NotifyUser(LPVOID param) {
             // Do not do anything
             break;
         }
-
-        // Close handler
-        FlushFileBuffers(hPipe);
-        DisconnectNamedPipe(hPipe);
-        CloseHandle(hPipe);
     }
+    else {
+        std::wcout << "explorer.exe tried to access" << "\n";
+    }
+
+    // Close handler
+    FlushFileBuffers(hPipe);
+    DisconnectNamedPipe(hPipe);
+    CloseHandle(hPipe);
 
     return 0;
 }
