@@ -4,28 +4,15 @@
 #include <vector>
 #include <random>
 #include <time.h>
+#include <map>
+#include <vector>
 
 #define BUFSIZE 512
 #define MAXTHREADS 24
 
 std::vector<std::wstring> trap_paths;
-
-std::vector<std::wstring> extensions{
-    L".pdf",
-    L".jpg",
-    L".png",
-    L".pptx",
-    L".doc",
-    L".docx",
-    L".mp3",
-    L".mp4",
-    L".mkv",
-    L".avi",
-    L".raw",
-};
-
+std::map<std::wstring, bool> whiteList;
 std::wstring trap_target(L"\\\\.\\pipe\\trap");
-
 
 // Debug Function
 std::string GetLastErrorAsString() {
@@ -70,7 +57,7 @@ DWORD WINAPI NotifyUser(LPVOID param) {
 
     std::wstring program_name(buffer);
 
-    if (program_name.compare(L"C:\\Windows\\explorer.exe") != 0) {
+    if (!whiteList[program_name]) {
         // Create message box text
         std::wstring message(L"Process connected to pipe with PID ");
         message += std::to_wstring(*ppid);
@@ -99,12 +86,13 @@ DWORD WINAPI NotifyUser(LPVOID param) {
             break;
 
         case IDNO:
-            // Do not do anything
+            // Add process to the white list
+            whiteList[program_name] = true;
             break;
         }
     }
     else {
-        std::wcout << "explorer.exe tried to access" << "\n";
+        std::wcout << "Program in the white list " << program_name <<  " tried to access the trap" << "\n";
     }
 
     // Close handler
@@ -178,8 +166,7 @@ DWORD WINAPI InstanceThread(LPVOID param) {
 void WalkDirs(std::wstring dir_name, int depth) {
 
     WIN32_FIND_DATA data;
-    std::wstring extension = extensions[rand() % extensions.size()];
-    std::wstring trap_name(dir_name + L"\\trap" + extension);
+    std::wstring trap_name(dir_name + L"\\a.a");
 
     //std::wcout << "Creating trap in " << trap_name << "\n";
 
@@ -229,6 +216,47 @@ int PopulateTraps() {
     return 1;
 }
 
+
+// Enum directories with benign .exe files and populate white list
+bool EnumDirs(std::vector<std::wstring> roots) {
+    WIN32_FIND_DATA rootData;
+    WIN32_FIND_DATA programData;
+    std::wstring root;
+
+
+    for (auto it = roots.begin(); it != roots.end(); ++it) {
+        root = *it;
+
+        HANDLE hFind = FindFirstFileW((root + L"\\*").c_str(), &rootData);
+        do {
+            std::wstring next_dir(rootData.cFileName);
+            if (rootData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
+                if (next_dir.compare(L".") != 0 && next_dir.compare(L"..") != 0) {
+
+                    std::wstring programDir(root + L"\\" + next_dir);
+                    //std::wcout << "Looking for in " << programDir << "\n";
+                    HANDLE pFind = FindFirstFileW((programDir + L"\\*").c_str(), &programData);
+
+                    do {
+                        std::wstring exeFile(programData.cFileName);
+                        std::wstring exePath(programDir + L"\\" + exeFile);
+                        //std::wcout << "Examinating " << exeFile << "\n";
+                        LPDWORD lpBinaryType = new DWORD;
+                        if (GetBinaryType(exePath.c_str(), lpBinaryType)) {
+                            whiteList[exePath] = true;
+                        }
+                    } while (FindNextFileW(pFind, &programData));
+
+                }
+            }
+        } while (FindNextFileW(hFind, &rootData));
+
+        FindClose(hFind);
+    }
+
+    return true;
+}
+
 // Clean traps
 BOOL WINAPI CtrlHandler(DWORD fdwCtrlType) {
     for (auto it = trap_paths.begin(); it != trap_paths.end(); ++it) {
@@ -256,6 +284,12 @@ int wmain() {
 
     // Spread traps
     PopulateTraps();
+
+    // Populate white list
+    std::vector<std::wstring> roots;
+    roots.push_back(L"C:\\Program Files");
+    roots.push_back(L"C:\\Program Files (x86)");
+    EnumDirs(roots);
 
     // Get number of cores
     SYSTEM_INFO sys_info;
