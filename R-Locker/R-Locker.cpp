@@ -162,27 +162,25 @@ DWORD WINAPI InstanceThread(LPVOID param) {
 }
 
 
-//Recursive populate traps
-void WalkDirs(std::wstring dir_name, int depth) {
+// Recursive populate traps
+void WalkDirs(std::wstring dir_name) {
 
     WIN32_FIND_DATA data;
     std::wstring trap_name(dir_name + L"\\a.a");
-
-    //std::wcout << "Creating trap in " << trap_name << "\n";
 
     // Create trap
     CreateSymbolicLink(trap_name.c_str(), trap_target.c_str(), 0x0);
     SetFileAttributes(trap_name.c_str(), FILE_ATTRIBUTE_HIDDEN);
     trap_paths.push_back(trap_name);
 
-    // Walk dirs if depth is lower than 3
+    // Walk dirs
     std::wstring full_dir(dir_name + L"\\*");
     HANDLE hFind = FindFirstFileW(full_dir.c_str(), &data);
     do {
         std::wstring next_dir(data.cFileName);
         if (data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
             if (next_dir.compare(L".") != 0 && next_dir.compare(L"..") != 0) {
-                WalkDirs(dir_name + L"\\" + next_dir, depth + 1);
+                WalkDirs(dir_name + L"\\" + next_dir);
             }
         }
     } while (FindNextFileW(hFind, &data));
@@ -210,8 +208,8 @@ int PopulateTraps() {
 
     std::wstring user_path(buffer);
 
-    // Walk directories creating trap until depth 3
-    WalkDirs(user_path, 0);
+    // Walk directories creating traps
+    WalkDirs(user_path);
 
     return 1;
 }
@@ -223,7 +221,6 @@ bool EnumDirs(std::vector<std::wstring> roots) {
     WIN32_FIND_DATA programData;
     std::wstring root;
 
-
     for (auto it = roots.begin(); it != roots.end(); ++it) {
         root = *it;
 
@@ -234,17 +231,17 @@ bool EnumDirs(std::vector<std::wstring> roots) {
                 if (next_dir.compare(L".") != 0 && next_dir.compare(L"..") != 0) {
 
                     std::wstring programDir(root + L"\\" + next_dir);
-                    //std::wcout << "Looking for in " << programDir << "\n";
                     HANDLE pFind = FindFirstFileW((programDir + L"\\*").c_str(), &programData);
 
                     do {
                         std::wstring exeFile(programData.cFileName);
                         std::wstring exePath(programDir + L"\\" + exeFile);
-                        //std::wcout << "Examinating " << exeFile << "\n";
                         LPDWORD lpBinaryType = new DWORD;
+                        
                         if (GetBinaryType(exePath.c_str(), lpBinaryType)) {
                             whiteList[exePath] = true;
                         }
+
                     } while (FindNextFileW(pFind, &programData));
 
                 }
