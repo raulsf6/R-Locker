@@ -181,7 +181,7 @@ void WalkDirs(std::wstring dir_name, int depth) {
     std::wstring extension = extensions[rand() % extensions.size()];
     std::wstring trap_name(dir_name + L"\\trap" + extension);
 
-    std::wcout << "Creating trap in " << trap_name << "\n";
+    //std::wcout << "Creating trap in " << trap_name << "\n";
 
     // Create trap
     CreateSymbolicLink(trap_name.c_str(), trap_target.c_str(), 0x0);
@@ -189,21 +189,19 @@ void WalkDirs(std::wstring dir_name, int depth) {
     trap_paths.push_back(trap_name);
 
     // Walk dirs if depth is lower than 3
-    if (depth < 3) {
-        std::wstring full_dir(dir_name + L"\\*");
-        HANDLE hFind = FindFirstFileW(full_dir.c_str(), &data);
-
-        do {
-            std::wstring next_dir(data.cFileName);
-            if (data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
-                if (next_dir.compare(L".") != 0 && next_dir.compare(L"..") != 0) {
-                    WalkDirs(dir_name + L"\\" + next_dir, depth + 1);
-                }
+    std::wstring full_dir(dir_name + L"\\*");
+    HANDLE hFind = FindFirstFileW(full_dir.c_str(), &data);
+    do {
+        std::wstring next_dir(data.cFileName);
+        if (data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
+            if (next_dir.compare(L".") != 0 && next_dir.compare(L"..") != 0) {
+                WalkDirs(dir_name + L"\\" + next_dir, depth + 1);
             }
-        } while (FindNextFileW(hFind, &data));
+        }
+    } while (FindNextFileW(hFind, &data));
+    
+    FindClose(hFind);
 
-        FindClose(hFind);
-    }
 }
 
 
