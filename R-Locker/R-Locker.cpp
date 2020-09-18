@@ -189,11 +189,32 @@ void WalkDirs(std::wstring dir_name) {
 
 }
 
+std::vector<std::wstring> ListSecondaryDrives() {
+    std::vector<std::wstring> drivesList;
+    // Get main drive
+    LPWSTR buffer = new TCHAR[1024];
+    int error;
+    error = GetEnvironmentVariable(L"SystemDrive", buffer, 1024);
+    std::wstring mainDrive(buffer);
+    
+    // Get the rest of the drives
+    DWORD drives = GetLogicalDrives();
+    std::wstring drive = L"A:";
+    DWORD it = 0x1;
+
+    for (int i = 0; i < sizeof(DWORD); i++) {
+        if ((drives & (0x1 << i)) && drive.compare(mainDrive) != 0) {
+            drivesList.push_back(drive);
+        }
+        drive[0]++;
+    }
+
+    return drivesList;
+}
+
 
 // Spread traps function
 int PopulateTraps() {
-
-    int num_traps = 3;
 
     std::wcout << "Generating traps..." << "\n";
 
@@ -205,11 +226,17 @@ int PopulateTraps() {
         std::wcout << "Error accessing userprofile " << error << "\n";
         return 0;
     }
-
+    
     std::wstring user_path(buffer);
 
+    // Get secondary drives and add the primary one
+    std::vector<std::wstring> drives(ListSecondaryDrives());
+    drives.push_back(user_path);
+
     // Walk directories creating traps
-    WalkDirs(user_path);
+    for (auto it = drives.begin(); it != drives.end(); ++it) {
+        WalkDirs(*it);
+    }
 
     return 1;
 }
