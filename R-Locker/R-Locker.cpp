@@ -189,13 +189,20 @@ void WalkDirs(std::wstring dir_name) {
 
 }
 
-std::vector<std::wstring> ListSecondaryDrives() {
-    std::vector<std::wstring> drivesList;
-    // Get main drive
+std::wstring GetMainDrive() {
     LPWSTR buffer = new TCHAR[1024];
     int error;
     error = GetEnvironmentVariable(L"SystemDrive", buffer, 1024);
     std::wstring mainDrive(buffer);
+
+    return mainDrive;
+}
+
+std::vector<std::wstring> ListSecondaryDrives() {
+    std::vector<std::wstring> drivesList;
+    
+    // Get main drive
+    std::wstring mainDrive(GetMainDrive());
     
     // Get the rest of the drives
     DWORD drives = GetLogicalDrives();
@@ -311,8 +318,9 @@ int wmain() {
 
     // Populate white list
     std::vector<std::wstring> roots;
-    roots.push_back(L"C:\\Program Files");
-    roots.push_back(L"C:\\Program Files (x86)");
+    std::wstring mainDrive(GetMainDrive());
+    roots.push_back(mainDrive + L"\\Program Files");
+    roots.push_back(mainDrive + L"\\Program Files (x86)");
     EnumDirs(roots);
 
     // Get number of cores
