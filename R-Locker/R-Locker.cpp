@@ -221,7 +221,7 @@ std::vector<std::wstring> ListSecondaryDrives() {
 
 
 // Spread traps function
-int PopulateTraps() {
+void PopulateTraps() {
 
     std::wcout << "Generating traps..." << "\n";
 
@@ -231,7 +231,7 @@ int PopulateTraps() {
     error = GetEnvironmentVariable(L"userprofile", buffer, 1024);
     if (error == 0) {
         std::wcout << "Error accessing userprofile " << error << "\n";
-        return 0;
+        return;
     }
     
     std::wstring user_path(buffer);
@@ -245,7 +245,10 @@ int PopulateTraps() {
         WalkDirs(*it);
     }
 
-    return 1;
+}
+
+void PopulateTraps(PVOID lpParameter, BOOLEAN TimerOrWaitFired) {
+    PopulateTraps();
 }
 
 
@@ -329,6 +332,10 @@ int wmain() {
     DWORD cores = sys_info.dwNumberOfProcessors;
 
     std::wcout << "NUMBER OF CORES: " << cores << "\n";
+
+    // Set timer
+    HANDLE timer_handle_;
+    CreateTimerQueueTimer(&timer_handle_, NULL, PopulateTraps, NULL, 10000, 10000, WT_EXECUTEDEFAULT);
 
     // Main loop
     for (;;) {
