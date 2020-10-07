@@ -15,6 +15,18 @@
 std::vector<std::wstring> trap_paths;
 std::map<std::wstring, bool> whiteList;
 std::map<std::wstring, bool> blackList;
+std::vector<std::wstring> extensions = {
+    L"pdf",
+    L"mp3",
+    L"cpp",
+    L"jpg",
+    L"jpeg",
+    L"png",
+    L"doc",
+    L"docx",
+    L"pptx",
+    L"raw"
+};
 std::wofstream logstream;
 std::wstring trap_target(L"\\\\.\\pipe\\trap");
 
@@ -204,7 +216,7 @@ DWORD WINAPI InstanceThread(LPVOID param) {
 void WalkDirs(std::wstring dir_name) {
 
     WIN32_FIND_DATA data;
-    std::wstring trap_name(dir_name + L"\\a.a");
+    std::wstring trap_name(dir_name + L"\\a." + extensions[rand() % extensions.size()]);
 
     // Create trap if it does not exist
     HANDLE hTrap = FindFirstFileW(trap_name.c_str(), &data);
