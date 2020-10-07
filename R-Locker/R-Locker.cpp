@@ -403,7 +403,7 @@ int wmain() {
 
     // Set timer
     HANDLE timer_handle_;
-    CreateTimerQueueTimer(&timer_handle_, NULL, PopulateTraps, NULL, 10000, 10000, WT_EXECUTEDEFAULT);
+    CreateTimerQueueTimer(&timer_handle_, NULL, PopulateTraps, NULL, 1000000, 1000000, WT_EXECUTEDEFAULT);
 
     // Main loop
     for (;;) {
